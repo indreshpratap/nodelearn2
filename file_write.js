@@ -30,4 +30,4 @@ fs.writeFile("output2.txt",contentdata,{encoding:"utf8",flag:"a"},(err)=>{
         console.log(err);
     }
 
-})
+});

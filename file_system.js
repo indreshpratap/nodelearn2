@@ -1,4 +1,5 @@
 var fs = require("fs");
+var path = require("path");
 var data;
 try {
   data = fs.readFileSync("readme1.txt", "utf8");
@@ -28,14 +29,14 @@ fs.readFile("readme12.txt", "utf8", function(err, data) {
 
 console.log("After Async Reading file\n\n");
 
-fs.readdir("../copiedver", (err, files) => {
+fs.readdir(path.resolve("C:","copiedver"), (err, files) => {
   if (err) {
     console.log(err);
   } else {
     //  console.log("Files", files);
 
     for (let file of files) {
-      fs.stat("../copiedver/"+file, (err, stats) => {
+      fs.stat(path.resolve("..","copiedver",file), (err, stats) => {
         if (err) {
           console.log("Stats error", err);
         } else {
@@ -49,6 +50,8 @@ fs.readdir("../copiedver", (err, files) => {
     }
   }
 });
+
+
 
 
 
