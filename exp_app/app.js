@@ -7,16 +7,10 @@ var app = express();
 
 var FoodItem = require("./models/food-item");
 
-var mongoose = require("mongoose");
-mongoose.connect(
-  "mongodb://mongotest:mongo_test@ritucluster-shard-00-00-kgfcu.mongodb.net:27017,ritucluster-shard-00-01-kgfcu.mongodb.net:27017,ritucluster-shard-00-02-kgfcu.mongodb.net:27017/test?ssl=true&replicaSet=ritucluster-shard-0&authSource=admin"
-);
+var dbConnect = require("./dao");
 
-var db = mongoose.connection;
-db.on('error', console.error.bind(console, 'connection error:'));
-db.once('open', function() {
-  console.log("Connected");
-});
+dbConnect();
+var mountApiRoutes = require("./modules").mountApiRoutes;
 
 // static files serving
 app.use(express.static(path.join(__dirname, "public/")));
@@ -27,6 +21,8 @@ nunjucks.configure(path.join(__dirname, "views"), {
   express: app,
   watch: true
 });
+
+mountApiRoutes(app);
 
 // added route
 app.get("/", function(request, response) {

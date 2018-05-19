@@ -1,0 +1,14 @@
+{
+    "from": "DEL",
+    "to": "BOM",
+    "airline_id": "6KbNBNKxP9hLniAU",
+    "fare": 300,
+    "direct_stop": "1",
+    "type": "NORMAL",
+    "dateFrom": "2018-05-22T00:00:00.000Z",
+    "dateTo": "2018-05-31T00:00:00.000Z",
+    "dateFromNum": 20180522,
+    "dateToNum": 20180531,
+    "active": true,
+    "_id": "rwFD7yBk6cu1crKp"
+}
