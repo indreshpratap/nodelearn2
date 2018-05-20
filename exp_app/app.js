@@ -2,15 +2,18 @@ var express = require("express");
 var fs = require("fs");
 var path = require("path");
 var nunjucks = require("nunjucks");
+var bodyParser = require("body-parser");
 // create an express app
 var app = express();
 
-var FoodItem = require("./models/food-item");
+var FoodItem = require("./dao/models/food-item");
 
-var dbConnect = require("./dao");
+var dbConnect = require("./dao").connect;
 
 dbConnect();
 var mountApiRoutes = require("./modules").mountApiRoutes;
+
+app.use(bodyParser.json());
 
 // static files serving
 app.use(express.static(path.join(__dirname, "public/")));

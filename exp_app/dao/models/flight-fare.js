@@ -2,7 +2,7 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 
 var flightFareSchema = new Schema({
-    _id: moongose.Schema.Types.ObjectId,
+ 
     from: String,
     to: String,
     airline_id: String,

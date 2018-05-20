@@ -1,4 +1,4 @@
-var models = require("../../dao/").models.FlightFare;
+var FlightFare = require("../../dao/").models.FlightFare;
 
 module.exports = {
     saveFare: saveFare,
@@ -7,12 +7,14 @@ module.exports = {
 
 function saveFare(req, res) {
     var body = req.body;
+    console.log(body);
     var flight = new FlightFare(body);
-    flight.save().then(function (err, data) {
-        res.json(data)
+    flight.save().then(function (data) {
+        console.log(data);
+        res.json(data);
     });
 }
 
 function getAllFares(req, res) {
-
+FlightFare.find().then(data=>res.json(data));
 }

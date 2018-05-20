@@ -12,5 +12,3 @@ router.get("/all-fares", (req, res) => ctrl.getAllFares(req, res));
 
 /// Post 
 router.post("/save-fare", (req, res) => ctrl.saveFare(req, res));
-
-router.use("/otherseg",)
