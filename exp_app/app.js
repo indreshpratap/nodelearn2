@@ -25,19 +25,29 @@ nunjucks.configure(path.join(__dirname, "views"), {
   watch: true
 });
 
+// A middleware 
+app.use(function (req, res, next) {
+  console.log("Logging - ", req.url);
+  if (req.url === '/about-us') {
+    res.send("Returned by middleware");
+  } else {
+    next();
+  }
+});
+
 mountApiRoutes(app);
 
 // added route
-app.get("/", function(request, response) {
-  console.log(request.url);
+app.get("/", function (request, response) {
+  //  console.log(request.url);
   response.send(
     fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8")
   );
 });
 
-app.get("/about-us", function(request, response) {
-  console.log(request.url);
-  console.log(request.query);
+app.get("/about-us", function (request, response) {
+  // console.log(request.url);
+  // console.log(request.query);
 
   response.render("aboutus.html", {
     companyname: request.query.info,
@@ -55,7 +65,20 @@ app.get("/about-us", function(request, response) {
 });
 
 // json response or api
-app.get("/get-users", function(request, response) {
+// route specific middleware
+app.get("/get-users",function(req,res,next){
+  
+  console.log("Middleware for get-users");
+  
+  //next();// calling next handler
+
+ // next("No users"); // when calling with a parameter except 'route' it will be reported as an error
+
+ next('route');  // calling the next matching route
+
+}, function (request, response) {
+  console.log("Sending users");
+  
   response.json([
     {
       username: "fdssf",
@@ -72,8 +95,13 @@ app.get("/get-users", function(request, response) {
   ]);
 });
 
+// defining wild card route which will be executed for any url starting with 'get-'
+app.get("/get-*",(req,res)=>{
+  res.send("Received by second matching route");
+});
+
 // path binding
-app.get("/get-user/:id/:name", function(request, response) {
+app.get("/get-user/:id/:name", function (request, response) {
   var params = request.params;
   console.log(params);
   response.json({
@@ -83,30 +111,30 @@ app.get("/get-user/:id/:name", function(request, response) {
   });
 });
 
-app.get("/add-food-item/:name",(req,res)=>{
+app.get("/add-food-item/:name", (req, res) => {
   var foodItem = new FoodItem({
-    name:req.params.name,
-    quantity:10
+    name: req.params.name,
+    quantity: 10
   });
 
-  foodItem.save().then((doc)=>{
-    console.log("Item",doc);
+  foodItem.save().then((doc) => {
+    console.log("Item", doc);
     res.json(doc);
   })
 });
 
-app.get("/all-items",(req,res)=>{
-  FoodItem.find((err,docs)=>{
-    res.json(docs);  
+app.get("/all-items", (req, res) => {
+  FoodItem.find((err, docs) => {
+    res.json(docs);
   })
 })
 
 // default handler or not found handler
-app.get("*", function(request, response) {
+app.get("*", function (request, response) {
   console.log(request.url);
   response.status(404).send("Page not found");
 });
 
-app.listen(3000, function() {
+app.listen(3000, function () {
   console.log("App running at 3000");
 });
