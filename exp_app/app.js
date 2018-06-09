@@ -3,6 +3,11 @@ var fs = require("fs");
 var path = require("path");
 var nunjucks = require("nunjucks");
 var bodyParser = require("body-parser");
+var session = require("express-session");
+const MongoStore = require('connect-mongo')(session);
+var passport = require('passport');
+var LocalStrategy = require('passport-local').Strategy;
+
 // create an express app
 var app = express();
 
@@ -10,11 +15,11 @@ var FoodItem = require("./dao/models/food-item");
 
 var dbConnect = require("./dao").connect;
 
-dbConnect();
+var connection = dbConnect();
 var mountApiRoutes = require("./modules").mountApiRoutes;
 
 app.use(bodyParser.json());
-
+app.use(bodyParser.urlencoded({ extended: true }));
 // static files serving
 app.use(express.static(path.join(__dirname, "public/")));
 app.use("/assets", express.static(path.join(__dirname, "assets/")));
@@ -25,6 +30,37 @@ nunjucks.configure(path.join(__dirname, "views"), {
   watch: true
 });
 
+
+app.use(session({
+  secret: 'learn',
+  resave: false,
+  saveUninitialized: true,
+  store: new MongoStore({ mongooseConnection: connection }),
+  cookie: { secure: false }
+}));
+
+
+app.use(passport.initialize());
+app.use(passport.session());
+passport.serializeUser(function (user, done) {
+  done(null, user);
+  // where is this user.id going? Are we supposed to access this anywhere?
+});
+
+// used to deserialize the user
+passport.deserializeUser(function (user, done) {
+  done(null, user);
+});
+passport.use(new LocalStrategy(function (username, password, done) {
+  if (username != 'demo' || password !== 'demo') {
+    done(null, false);
+  } else if (username === 'demo' && password === "demo") {
+    done(null, { id: 1, username: 'demo', role: 'user' });
+  }else if (username === 'admin' && password === "admin") {
+    done(null, { id: 1, username: 'admin', role: 'admin' });
+  }
+
+}));
 // A middleware 
 app.use(function (req, res, next) {
   console.log("Logging - ", req.url);
@@ -35,15 +71,60 @@ app.use(function (req, res, next) {
   }
 });
 
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    console.log(req.user);
+    next();
+  } else {
+    res.redirect("/error");
+
+  }
+}
+
+function checkRole(role) {
+  return function (req, res, next) {
+    if (req.user.role === role) {
+      next();
+    } else {
+      res.redirect("/error");
+    }
+  }
+}
+
 mountApiRoutes(app);
 
 // added route
-app.get("/", function (request, response) {
-  //  console.log(request.url);
-  response.send(
-    fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8")
-  );
+// app.get("/", function (request, response) {
+
+// if(request.session.views){
+//   request.session.views=1;
+// }else {
+//   ++request.session.views;
+// }
+
+//   console.log("views");
+
+//   response.send(
+//     fs.readFileSync(path.join(__dirname, "public", "index.html"), "utf8")
+//   );
+// });
+app.get("/login", (req, res) => {
+  res.render("login.html");
+})
+
+app.post("/dologin", passport.authenticate('local', { failureCallback: "/error" }), (req, res) => {
+  res.redirect("/success");
+  //res.send("You are logged in");
 });
+
+app.get("/error", (req, res) => {
+  res.status(500).send("Error");
+});
+
+app.get("/success", (req, res) => {
+  res.send("Login successfull")
+});
+
 
 app.get("/about-us", function (request, response) {
   // console.log(request.url);
@@ -64,21 +145,41 @@ app.get("/about-us", function (request, response) {
   });
 });
 
+
+app.get("/session", isAuthenticated, checkRole('user'), (req, res) => {
+  if (!req.session.views) {
+    req.session.views = 1;
+  } else {
+    req.session.views = ++req.session.views;
+  }
+  console.log(req.session.views);
+
+  res.send("Session page: " + req.session.views);
+});
+
+
+app.get("/delete-item", isAuthenticated, checkRole('admin'), (req, res) => {
+  res.send("Yes deleted item");
+});
+app.get("/logout", (req, res) => {
+  req.session.destroy((err) => console.log(err));
+  res.send("loggedout");
+});
 // json response or api
 // route specific middleware
-app.get("/get-users",function(req,res,next){
-  
+app.get("/get-users", function (req, res, next) {
+
   console.log("Middleware for get-users");
-  
+
   //next();// calling next handler
 
- // next("No users"); // when calling with a parameter except 'route' it will be reported as an error
+  // next("No users"); // when calling with a parameter except 'route' it will be reported as an error
 
- next('route');  // calling the next matching route
+  next('route');  // calling the next matching route
 
 }, function (request, response) {
   console.log("Sending users");
-  
+
   response.json([
     {
       username: "fdssf",
@@ -96,7 +197,7 @@ app.get("/get-users",function(req,res,next){
 });
 
 // defining wild card route which will be executed for any url starting with 'get-'
-app.get("/get-*",(req,res)=>{
+app.get("/get-*", (req, res) => {
   res.send("Received by second matching route");
 });
 
