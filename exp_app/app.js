@@ -13,9 +13,15 @@ var app = express();
 
 var FoodItem = require("./dao/models/food-item");
 
+// mongodb
 var dbConnect = require("./dao").connect;
-
 var connection = dbConnect();
+
+// postgres db
+var {pgdbConnect,pgQuery} = require('./db/pgdb');
+
+pgdbConnect(); 
+
 var mountApiRoutes = require("./modules").mountApiRoutes;
 
 app.use(bodyParser.json());
@@ -51,6 +57,8 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (user, done) {
   done(null, user);
 });
+
+/*  // dummy local strategy
 passport.use(new LocalStrategy(function (username, password, done) {
   if (username != 'demo' || password !== 'demo') {
     done(null, false);
@@ -61,6 +69,29 @@ passport.use(new LocalStrategy(function (username, password, done) {
   }
 
 }));
+*/
+// DB specific
+passport.use(new LocalStrategy(function (username, password, done) {
+  var query = {
+    text:"select id,name,user_role from tracking_users where email= $1 and enc_password=$2 and active=1",
+    values:[username,password]
+  }
+  pgQuery(query,(err,res)=>{
+    if(err) {done(err,false);}
+    else {
+      var user = res.rows && res.rows.length>0? res.rows[0] : null;
+      if(user===null){
+        done(null, false);
+      }else {
+        done(null,{id:user.id,name:user.name,role:user.user_role});
+      }
+
+    }
+  });
+
+
+}));
+
 // A middleware 
 app.use(function (req, res, next) {
   console.log("Logging - ", req.url);
@@ -83,7 +114,7 @@ function isAuthenticated(req, res, next) {
 
 function checkRole(role) {
   return function (req, res, next) {
-    if (req.user.role === role) {
+    if (req.isAuthenticated() && req.user.role === role) {
       next();
     } else {
       res.redirect("/error");
@@ -125,7 +156,20 @@ app.get("/success", (req, res) => {
   res.send("Login successfull")
 });
 
+app.get("/check-pgdb",(req,res)=>{
+  pgQuery("select * from tracking_users",(err,data)=>{
+    res.json(data.rows);
+  });
+});
 
+
+app.get("/user-info",(req,res)=>{
+  if(req.isAuthenticated()){
+    res.json(req.user);
+  }else {
+    res.status(403).json({error:"User not loggedin!"});
+  }
+});
 app.get("/about-us", function (request, response) {
   // console.log(request.url);
   // console.log(request.query);
@@ -146,7 +190,7 @@ app.get("/about-us", function (request, response) {
 });
 
 
-app.get("/session", isAuthenticated, checkRole('user'), (req, res) => {
+app.get("/session", checkRole('student'), (req, res) => {
   if (!req.session.views) {
     req.session.views = 1;
   } else {
